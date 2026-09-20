@@ -1,2 +1,2 @@
 # Matchlock
-Matchlock Game made by WechugeGameStudios
+Matchlock, a game made by WechugeGameStudios
