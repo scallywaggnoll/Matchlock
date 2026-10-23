@@ -48,7 +48,7 @@ public class BlackpowderWeapons : MonoBehaviour
 		}
 	}
 	
-	void Shoot()
+	public void Shoot()
 	{
 		readyToShoot = false;
 		cartridgeLoaded -= 4;
@@ -97,7 +97,7 @@ public class BlackpowderWeapons : MonoBehaviour
 
 	}
 
-	void Reload()
+	public void Reload()
 	{
 		reloading = true;
 		Invoke(nameof(ReloadFinished), reloadTime);

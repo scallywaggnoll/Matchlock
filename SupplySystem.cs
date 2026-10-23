@@ -1,8 +1,11 @@
+using JetBrains.Annotations;
+using System;
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class SupplySystem : MonoBehaviour
 {
-	public supplyData[] supplies;
 	
 	[System.Serializable]
 	public class supplyData
@@ -25,8 +28,10 @@ public class SupplySystem : MonoBehaviour
 		public float consumptionPerLaborer;
 		public float consumptionPerWarman;
 		
-		public float labourAlocatedToProduction; //Since there can only be 1 PM at a time, this can change. Labour Required to produce 1u/ of this unit
-		public float currentLabourAlocated; //Labour Used.
+		public float labourAllocatedToProduction; //Since there can only be 1 PM at a time, this can change. Labour Required to produce 1u/ of this unit
+		public float currentLabourAllocated; //Labour Used.
+		
+		public float baseConsumption;
 		
 	}
 	
@@ -40,134 +45,197 @@ public class SupplySystem : MonoBehaviour
 	public int nonCombatants; //Civilians... not the number of warmen, Laborer size
 	public int infantrySize; //War party from YOU
 	public int enemyWarParty; //Enemies to spawn every so oftern
+	public int currentGarrisonInjuredSick; //Sum of everyone who is sick/injured.
 	
-	public float labourProduced;
-	public float labourUsed;
-	public float totalLabourNeeded;
+	public float labourProduced; //Total Labour Produced
+	public float labourUsed; //Total Labour Used in currentLabourAllocated
+	public float totalLabourAvailable; //totalLabourAvailableToUse
+	public float totalLabourPossible;
+	
+	public float totalFirstAidUsed; //First aid, is how much labour is Used in care. Feeding the sick, wounded and Injured.
 	
 	public float avgMorale;
-	
-	public EnvironmentTimeSystem daysPassedScript;
+
 	//Weather conditions
-	
+
 	[Range(1, 4)]
 	public int currentSeason;
 	public float rainIntensity;
 	public float snowIntensity;
-
-	//ADD a new array for soldiers... 
 	
-	public void GarrisonLabourUse()
+	public EnvironmentTimeSystem daysPassedScript;
+
+    
+
+    //ADD a new array for soldiers... 
+
+
+
+    public void GarrisonLabourUse()
 	{
 		labourProduced = nonCombatants / (generalSufferingIndex + 1f);
+		totalLabourPossible = nonCombatants;
+		
+		foreach (KeyValuePair<string, supplyData> supply in supplies)
+		{
+			totalLabourAvailable = totalLabourPossible - (labourUsed + supply.Value.currentLabourAllocated + totalFirstAidUsed); 
+		}
 	}
 
-	public void GoodProductionSchemes()
+    public Dictionary<string, supplyData> supplies = new Dictionary<string, supplyData>();
+
+    public void InitializeSupplies()
 	{
-		supplyData rations = null;
-		supplyData freshGame = null;
-		supplyData water = null;
-		supplyData alcohol = null;
-		supplyData militarySupplies = null;
-		supplyData gunpowder = null;
-		supplyData fabric = null; 
-		supplyData furs = null;
-		supplyData metalIngots = null;
-		supplyData medicalSupplies = null;
-		supplyData wood = null;
-		supplyData tobaccoHerbs = null;
+        supplies.Add("rations", new supplyData());
+        supplies["rations"].tradeID = 1;
+		supplies["rations"].baseConsumption = 0f; //Doesnt Get Consumed via PM's, instead uses consumptionPerLaborer and consumptionPerWarman
+		supplies["rations"].consumptionPerLaborer = 1f;
+		supplies["rations"].consumptionPerWarman = 2f;
+		supplies["rations"].labourAllocatedToProduction = 1f; //labour required to produce 1u/good
 		
-		foreach (supplyData supply in supplies)
-		{		
-			//Rations[1]
-			if (supply.tradeID == 1) rations = supply;
-			
-			//Fresh Game/Fish[2]
-			else if (supply.tradeID == 2) freshGame = supply;
-			
-			//Water[3]
-			else if (supply.tradeID == 3) water = supply;
-			
-			//Alcohol[4]
-			else if (supply.tradeID == 4) alcohol = supply;
-			
-			//Military Supplies[5]
-			else if (supply.tradeID == 5) militarySupplies = supply;
-			
-			//Gunpowder[6]
-			else if (supply.tradeID == 6) gunpowder = supply;
-			
-			//Fabric[7]
-			else if (supply.tradeID == 7) fabric = supply;
-			
-			//Furs[8]
-			else if (supply.tradeID == 8) furs = supply;
-			
-			//Metal Ingots[9]
-			else if (supply.tradeID == 9) metalIngots = supply;
-			
-			//medicalSupplies[10]
-			else if (supply.tradeID == 10) medicalSupplies = supply;
-			
-			//Wood[11]
-			else if (supply.tradeID == 11) wood = supply;
-			
-			//Tobacco and foragable herbs[12]
-			else if (supply.tradeID == 12) tobaccoHerbs = supply;
-		}
+        supplies.Add("freshGame", new supplyData());
+        supplies["freshGame"].tradeID = 2;
+		supplies["freshGame"].baseConsumption = 0f; //Doesnt Get Consumed via PM's, instead uses consumptionPerLaborer and consumptionPerWarman
+		supplies["freshGame"].consumptionPerLaborer = 2f;
+		supplies["freshGame"].consumptionPerWarman = 1f;
+		supplies["freshGame"].labourAllocatedToProduction = 2f; //labour required to produce 1u/good
+
+        supplies.Add("water", new supplyData());
+        supplies["water"].tradeID = 3;
+		supplies["water"].baseConsumption = 1f; //Doesnt Get Consumed via PM's, instead uses consumptionPerLaborer and consumptionPerWarman
+		supplies["water"].consumptionPerLaborer = 2f;
+		supplies["water"].consumptionPerWarman = 2f;
+		supplies["water"].labourAllocatedToProduction = 1f; //labour required to produce 1u/good
+
+        supplies.Add("alcohol", new supplyData());
+        supplies["alcohol"].tradeID = 4;
+		supplies["alcohol"].baseConsumption = 1f * generalSufferingIndex; //Doesnt Get Consumed via PM's, instead uses consumptionPerLaborer and consumptionPerWarman
+		supplies["alcohol"].consumptionPerLaborer = 1f;
+		supplies["alcohol"].consumptionPerWarman = 1f;
+		supplies["alcohol"].labourAllocatedToProduction = 1f; //labour required to produce 1u/good
+
+        supplies.Add("militarySupplies", new supplyData());
+        supplies["militarySupplies"].tradeID = 5;
+		supplies["militarySupplies"].baseConsumption = 0f; //Doesnt Get Consumed via PM's, instead uses consumptionPerLaborer and consumptionPerWarman
+		supplies["militarySupplies"].consumptionPerLaborer = 0f;
+		supplies["militarySupplies"].consumptionPerWarman = 1f;
+		supplies["militarySupplies"].labourAllocatedToProduction = 2f; //labour required to produce 1u/good
+
+        supplies.Add("gunpowder", new supplyData());
+        supplies["gunpowder"].tradeID = 6;
+		supplies["gunpowder"].baseConsumption = 0f; //Doesnt Get Consumed via PM's, instead uses consumptionPerLaborer and consumptionPerWarman
+		supplies["gunpowder"].consumptionPerLaborer = 0f;
+		supplies["gunpowder"].consumptionPerWarman = 1f;
+		supplies["gunpowder"].labourAllocatedToProduction = 1f; //labour required to produce 1u/good
 		
-		if (rations == null || freshGame == null || water == null || alcohol == null || militarySupplies == null || gunpowder == null || fabric == null || furs == null || metalIngots == null || medicalSupplies == null || wood == null || tobaccoHerbs == null) return; //add "|| above foreach line name == null"
+        supplies.Add("fabric", new supplyData());
+        supplies["fabric"].tradeID = 7;
+		supplies["fabric"].baseConsumption = 1f; //Fabric gets Consumed via heating needs.
+		supplies["fabric"].consumptionPerLaborer = 1f;
+		supplies["fabric"].consumptionPerWarman = 1f;
+		supplies["fabric"].labourAllocatedToProduction = 2f; //labour required to produce 1u/good
 		
-		//Rations
-		rations.amount += rations.gain - rations.useLoss; //should be per day.
+        supplies.Add("furs", new supplyData());
+        supplies["furs"].tradeID = 8;
+		supplies["furs"].baseConsumption = 0f; //Fabric gets Consumed via heating needs.
+		supplies["furs"].consumptionPerLaborer = 0f;
+		supplies["furs"].consumptionPerWarman = 0f;
+		supplies["furs"].labourAllocatedToProduction = 2f; //labour required to produce 1u/good
 		
-		//FreshGameFish
-		freshGame.amount += freshGame.gain - freshGame.useLoss;
-		
-		//Labour Generation
-		
-		if (generalSufferingIndex >= 1f)
+        supplies.Add("metalIngots", new supplyData());
+        supplies["metalIngots"].tradeID = 9;
+		supplies["metalIngots"].baseConsumption = 3f; //Iron is Needed
+		supplies["metalIngots"].consumptionPerLaborer = 0f;
+		supplies["metalIngots"].consumptionPerWarman = 0f;
+		supplies["metalIngots"].labourAllocatedToProduction = 2f; //labour required to produce 1u/good
+
+        supplies.Add("medicalSupplies", new supplyData());
+        supplies["medicalSupplies"].tradeID = 10;
+		supplies["medicalSupplies"].baseConsumption = 1f * totalFirstAidUsed; //Base consumption is that
+		supplies["medicalSupplies"].consumptionPerLaborer = 0f;
+		supplies["medicalSupplies"].consumptionPerWarman = 0f;
+		supplies["medicalSupplies"].labourAllocatedToProduction = 1f; //labour required to produce 1u/good
+
+        supplies.Add("wood", new supplyData());
+        supplies["wood"].tradeID = 11;
+		supplies["wood"].baseConsumption = 5f; //Heating Needs, Militry units
+		supplies["wood"].consumptionPerLaborer = 0f;
+		supplies["wood"].consumptionPerWarman = 0f;
+		supplies["wood"].labourAllocatedToProduction = 1f; //labour required to produce 1u/good
+
+        supplies.Add("tobacco", new supplyData());
+        supplies["tobacco"].tradeID = 12;
+		supplies["tobacco"].baseConsumption = 0f; //Heating Needs, Militry units
+		supplies["tobacco"].consumptionPerLaborer = 1f;
+		supplies["tobacco"].consumptionPerWarman = 1f;
+		supplies["tobacco"].labourAllocatedToProduction = 1f; //labour required to produce 1u/good
+
+        /*
+		foreach(KeyValuePair<string, supplyData> supply in supplies)
 		{
-			labourProduced = nonCombatants / generalSufferingIndex;
+			print(supply.Key); //Gets the string
+			print(supply.Value); //Gets the supplyData
 		}
-		else 
-		{
-			labourProduced = nonCombatants; //GSI less than 1 doesnt matter.
-		}
-		
-		//Gain of Goods (Production Schemes
-		
-		rations.gain = (rations.currentLabourAlocated / rations.labourAlocatedToProduction);
-		freshGame.gain = (freshGame.currentLabourAlocated / freshGame.labourAlocatedToProduction);
-		water.gain = (water.currentLabourAlocated / water.labourAlocatedToProduction);
-		alcohol.gain = (alcohol.currentLabourAlocated / alcohol.labourAlocatedToProduction);
-		militarySupplies.gain = (militarySupplies.currentLabourAlocated / militarySupplies.labourAlocatedToProduction);
-		gunpowder.gain = (gunpowder.currentLabourAlocated / gunpowder.labourAlocatedToProduction);
-		fabric.gain = (fabric.currentLabourAlocated / fabric.labourAlocatedToProduction);
-		furs.gain = (furs.currentLabourAlocated / furs.labourAlocatedToProduction);
-		metalIngots.gain = (metalIngots.currentLabourAlocated / metalIngots.labourAlocatedToProduction);
-		medicalSupplies.gain = (medicalSupplies.currentLabourAlocated / medicalSupplies.labourAlocatedToProduction);
-		wood.gain = (wood.currentLabourAlocated / wood.labourAlocatedToProduction);
-		tobaccoHerbs.gain = (tobaccoHerbs.currentLabourAlocated / tobaccoHerbs.labourAlocatedToProduction);
-	}
-	
-	public void StorageAmountGoods()
+		*/
+    }
+
+
+    public void GoodProductionSchemes()
 	{
+        //Rations
+        supplies["rations"].amount += (supplies["rations"].gain - supplies["rations"].useLoss) * (Time.deltaTime / daysPassedScript.secondsPerDay); //should be per day.
+
+        //FreshGameFish
+        supplies["freshGame"].amount += (supplies["freshGame"].gain - supplies["freshGame"].useLoss) * (Time.deltaTime / daysPassedScript.secondsPerDay);
+
+        //Labour Generation
+
+        if (generalSufferingIndex >= 1f)
+        {
+            labourProduced = nonCombatants / generalSufferingIndex;
+        }
+        else 
+        {
+            labourProduced = nonCombatants; //GSI less than 1 doesnt matter.
+        }
+		
+		
+
+		//Gain of Goods (Production Schemes)
+
+		foreach (KeyValuePair<string, supplyData> supply in supplies)
+		{
+			supply.Value.gain = (supply.Value.currentLabourAllocated / supply.Value.labourAllocatedToProduction);
+		}
+		
+		//Loss of Goods (Consumption)
+		foreach (KeyValuePair<string, supplyData> supply in supplies)
+		{
+			supply.Value.useLoss = supply.Value.baseConsumption + supply.Value.consumptionPerLaborer + supply.Value.consumptionPerWarman;
+		}
+		
+    }
+
+    public void StorageAmountGoods()
+	{
+        
 		currentStored = 0f;
 		
-		foreach (supplyData supply in supplies)
+		foreach (KeyValuePair<string, supplyData> supply in supplies)
 		{		
-			if (supply.usesStorage)
+			if (supply.Value.usesStorage)
 			{
-				currentStored += supply.amount;
+				currentStored += supply.Value.amount;
 			}
 			
 			
-		}			
-	}
-	
-	public void GeneralSufferingIndex()
+		}	
+		
+    }
+
+    public void GeneralSufferingIndex()
 	{
+		totalFirstAidUsed = currentGarrisonInjuredSick;
 		
 	}
 	
@@ -175,13 +243,13 @@ public class SupplySystem : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        
+		InitializeSupplies();
     }
 
     // Update is called once per frame
     void Update()
     {
         StorageAmountGoods();
-		GoodProductionSchemes();
+        GoodProductionSchemes();
     }
 }
