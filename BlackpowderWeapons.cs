@@ -20,11 +20,6 @@ public class BlackpowderWeapons : MonoBehaviour
 	
 	[Range(0, 4)]
 	public int cartridgeLoaded; //1 - Powder Loaded, 2 - Bullets and Wad Loaded, 3 - Rammed, 4 - Primer added, 0 - Fired.
-	[Range(0, 2)]
-	public float powderCharge; //used blackpowder, can be overloaded
-	public float powderChargeOverLoad; //Once powdercharge is more than 2, this will be added, to cause an explosion.
-	[Range(0, 50)]
-	public int leadPellets; //Used pellets.
 	
 	public float recoil;
 	public float knockback;
@@ -52,8 +47,6 @@ public class BlackpowderWeapons : MonoBehaviour
 	{
 		readyToShoot = false;
 		cartridgeLoaded -= 4;
-		powderCharge -= 2;
-		leadPellets -= 50;
 		
         float x = Random.Range(-spread, spread);
         float y = Random.Range(-spread, spread);
@@ -110,19 +103,11 @@ public class BlackpowderWeapons : MonoBehaviour
 		}
 		
 		if (cartridgeLoaded == 1) //Powder
-		{
-			powderCharge += caliberBonus;
-			
-			if (powderCharge > 2)
-			{
-				powderChargeOverLoad += caliberBonus;
-			}
-			
+		{	
 			cartridgeLoaded++;
 		}
 		if (cartridgeLoaded == 2) //Wad and pellets
 		{
-			leadPellets += bulletsPerShot;
 			cartridgeLoaded++;			
 		}
 		

@@ -9,13 +9,17 @@ public class MeleeWeapon : MonoBehaviour
 	
 	public float damageMelee;
 	public float damageMeleeRange; //damage Range
-	public float attackSpeed; //seconds between attacks.
+	public float attackCooldown; //seconds between attacks.
 
 	
 	[Range(0, 1)]
 	public float attackForce; //so to do damage while attacking, not just touching the enemy will damage in full.
 	
-	public Collider meleeCollider;
+	public GameObject meleeAttackPoint;
+	public Transform attackPoint;
+	public RaycastHit rayHit;
+	public float meleeRange;
+	public LayerMask destructibleMeleeLayer;
 	
 	//public LayerMask enemyMask;
 	//add 2 more for limb collisions. to add extra damage
@@ -23,64 +27,66 @@ public class MeleeWeapon : MonoBehaviour
 	//There are 4 tags for ai detection - Enemy, Ally, Neutral, Destructible and Player...
 			
 	//AI Behaviourv and animation
-	public bool isAttacking;
 	public bool readyToAttack;
 	
-	
-	public void Attack()
+	public void AttemptAttack()
 	{
 		if (!readyToAttack)
 		{
-			isAttacking = true;
-			
-			if (isAttacking)
-			{
-				attackForce = 1f;
-				
-			}
-			else
-			{
-				attackForce = 0f;
-			}
+			return;
 		}
 		
-		readyToAttack = true;
+		Attack();
 	}
 	
-	
-	void OnTriggerEnter(Collider other)
-	{
-		if (!isAttacking) return;
+	public void Attack()
+	{	
+		float x = Random.Range(0f, 0f);
+        float y = Random.Range(0f, 0f);
 		
-		TargetHealthSystem enemyHealth = other.GetComponent<TargetHealthSystem>();
-		Destructibles destructiblesHealth = other.GetComponent<Destructibles>();
+		Vector3 direction = meleeAttackPoint.transform.forward + new Vector3(x, y, 0);
 		
-		if (other.CompareTag("Enemy"))
-		{
+		if (Physics.Raycast(meleeAttackPoint.transform.position, direction, out rayHit, meleeRange, destructibleMeleeLayer))
+        {
+            Debug.Log(rayHit.collider.name);
 			
-			if (enemyHealth != null)
+			TargetHealthSystem enemyHealth = rayHit.collider.GetComponent<TargetHealthSystem>();
+			Destructibles destructiblesHealth = rayHit.collider.GetComponent<Destructibles>();
+			
+            if (rayHit.collider.CompareTag("Enemy"))
 			{
-				enemyHealth.hitPoints -= (damageMelee + Random.Range(-damageMeleeRange, damageMeleeRange)) * attackForce;
+				if (enemyHealth != null)
+				{
+					enemyHealth.hitPoints -= (damageMelee + Random.Range(-damageMeleeRange, damageMeleeRange));
+				}
+				Debug.Log("We have shot the enemy");
 			}
-			
-			Debug.Log("We have hit the enemy");
-		}
-		else if (other.CompareTag("Ally"))
-		{
-			Debug.Log("You blithering idiot, hitting your allies?");
-		}
-		else if (other.CompareTag("Neutral"))
-		{
-			Debug.Log("Really? Hitting innocents?");
-		}	
-		else if (other.CompareTag("Destructible"))
-		{
-			Debug.Log("We have hit something...");
-		}	
-		else if (other.CompareTag("Player"))
-		{
-			Debug.Log("We have hit the local imbecile");
-		}		
+			else if (rayHit.collider.CompareTag("Ally"))
+			{
+				Debug.Log("You blithering idiot, hitting your allies?");
+			}
+			else if (rayHit.collider.CompareTag("Neutral"))
+			{
+				Debug.Log("Really? Hitting innocents?");
+			}	
+			else if (rayHit.collider.CompareTag("Destructible"))
+			{
+				Debug.Log("We have hit something...");
+			}	
+			else if (rayHit.collider.CompareTag("Player"))
+			{
+				Debug.Log("We have hit the local imbecile");
+			}		              
+        }
+	}
+		
+	public IEnumerator WeaponCooldownTime()
+	{
+		readyToAttack = false;
+		
+		yield return new WaitForSeconds(attackCooldown);
+		
+		readyToAttack = true;
 	}
 	
     // Start is called once before the first execution of Update after the MonoBehaviour is created
